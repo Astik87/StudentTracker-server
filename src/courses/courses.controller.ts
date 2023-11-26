@@ -52,7 +52,7 @@ export class CoursesController {
     @Inject(UsersService) private readonly usersService: UsersService,
   ) {}
 
-  @ApiOperation({ summary: 'Get all courses with pagination' })
+  @ApiOperation({ summary: 'Get all courses with pagination ' })
   @ApiOkResponse({ type: GetCoursesResultDto })
   @Get()
   async get(
