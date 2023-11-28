@@ -61,7 +61,7 @@ export class AuthService {
     const user = this.usersService.getById(tokenPayload.id);
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const token = await this.tokenService.getByRefreshToken(refreshToken);

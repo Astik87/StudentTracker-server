@@ -54,6 +54,7 @@ export class CoursesController {
 
   @ApiOperation({ summary: 'Get all courses with pagination ' })
   @ApiOkResponse({ type: GetCoursesResultDto })
+  @ApiQuery({ name: 'query', required: false })
   @Get()
   async get(
     @Query('limit') limit: string,
@@ -68,8 +69,8 @@ export class CoursesController {
   @ApiOkResponse({ type: Course })
   @ApiNotFoundResponse({ description: 'Course not found' })
   @Get(':courseId')
-  async getOne(@Param('id') id: number): Promise<Course> {
-    const course = this.coursesService.getById(id);
+  async getOne(@Param('courseId') courseId: number): Promise<Course> {
+    const course = await this.coursesService.getById(courseId);
 
     if (!course) {
       throw new NotFoundException('Course not found');
@@ -112,7 +113,7 @@ export class CoursesController {
   @UseInterceptors(FileInterceptor('image'))
   @Put(':courseId')
   async update(
-    @Param('id') id: number,
+    @Param('courseId') courseId: number,
     @Body('name') name?: string,
     @Body('description') description?: string,
     @UploadedFile() image?: Express.Multer.File,
@@ -122,7 +123,7 @@ export class CoursesController {
       imagePath = this.filesService.saveFile(image);
     }
 
-    return this.coursesService.update(id, {
+    return await this.coursesService.update(courseId, {
       name,
       description,
       image: imagePath,
@@ -134,7 +135,7 @@ export class CoursesController {
   @Roles(DefaultRoles.TEACHER)
   @UseGuards(RolesGuard, CourseAuthorGuard)
   @Delete(':courseId')
-  async delete(@Param('id') id: number): Promise<void> {
-    await this.coursesService.delete(id);
+  async delete(@Param('courseId') courseId: number): Promise<void> {
+    await this.coursesService.delete(courseId);
   }
 }

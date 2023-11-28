@@ -36,8 +36,6 @@ export class CourseAuthorGuard implements CanActivate {
 
     const course = await this.coursesService.getById(Number(courseId));
 
-    console.log(course);
-
     if (!course) {
       throw new NotFoundException('Course not found');
     }

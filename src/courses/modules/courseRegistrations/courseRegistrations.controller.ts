@@ -13,7 +13,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import { User } from '@/entities';
 import {
   AuthGuard,
   UsersService,
@@ -26,7 +25,23 @@ import { CourseAuthorGuard } from '../../course-author.guard';
 import { CoursesService } from '../../courses.service';
 import { CourseRegistrationsService } from './courseRegistrations.service';
 import { CourseRegistrationRequest } from '@/entities';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { GetCourseUsersDto } from './dto/get-course-users.dto';
 
+@ApiTags('Course registration')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'You are not logged in' })
+@ApiNotFoundResponse({ description: 'Course not found' })
 @UseGuards(AuthGuard)
 @Controller('courses/:courseId/registrations')
 export class CourseRegistrationsController {
@@ -37,6 +52,10 @@ export class CourseRegistrationsController {
     @Inject(UsersService) private readonly usersService: UsersService,
   ) {}
 
+  @ApiOperation({ summary: 'Unregister in the course [Student]' })
+  @ApiOkResponse({ description: 'Unregister success' })
+  @ApiForbiddenResponse()
+  @ApiBadRequestResponse({ description: 'User not registered in course' })
   @Roles(DefaultRoles.STUDENT)
   @UseGuards(RolesGuard)
   @Delete('/unregister')
@@ -62,13 +81,16 @@ export class CourseRegistrationsController {
     );
   }
 
+  @ApiOperation({ summary: 'Get course all registered users with pagination' })
+  @ApiOkResponse({ type: GetCourseUsersDto })
+  @ApiQuery({ name: 'query', required: false })
   @Get('/users')
   async getRegisteredUsers(
     @Param('courseId') courseId: string,
     @Query('page') page: string,
     @Query('limit') limit: string,
     @Query('query') query?: string,
-  ): Promise<User[]> {
+  ): Promise<GetCourseUsersDto> {
     const course = await this.coursesService.getById(Number(courseId));
 
     if (!course) {
@@ -83,6 +105,13 @@ export class CourseRegistrationsController {
     );
   }
 
+  @ApiOperation({ summary: 'Send registration request [Student]' })
+  @ApiOkResponse({ type: CourseRegistrationRequest })
+  @ApiNotFoundResponse({ description: 'User not found || Course not found' })
+  @ApiBadRequestResponse({
+    description:
+      'You are already registered for the course || The registration request has already been sent',
+  })
   @Roles(DefaultRoles.STUDENT)
   @UseGuards(RolesGuard)
   @Post('/registration-request')
@@ -126,11 +155,24 @@ export class CourseRegistrationsController {
     return await this.courseRegistrationsService.createRequest(course, user);
   }
 
+  @ApiOperation({ summary: 'Access registration request [Teacher]' })
+  @ApiOkResponse({ description: 'Success access registration request' })
+  @ApiNotFoundResponse({
+    description: 'Course not found || Course registration request not found',
+  })
+  @ApiForbiddenResponse()
   @UseGuards(CourseAuthorGuard)
   @Put('/registration-request/:registrationRequestId')
   async accessCourseRegistrationRequest(
+    @Param('courseId') courseId: string,
     @Param('registrationRequestId') registrationRequestId: string,
   ): Promise<void> {
+    const course = this.coursesService.getById(Number(courseId));
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
     const courseRegistrationRequest =
       await this.courseRegistrationsService.getRequestById(
         Number(registrationRequestId),
@@ -145,11 +187,24 @@ export class CourseRegistrationsController {
     );
   }
 
+  @ApiOperation({ summary: 'Reject course registration request [Teacher]' })
+  @ApiOkResponse({ description: 'Success reject course registration request' })
+  @ApiForbiddenResponse()
+  @ApiNotFoundResponse({
+    description: 'Course not found || Course registration request not found',
+  })
   @UseGuards(CourseAuthorGuard)
   @Delete('/registration-request/:registrationRequestId')
   async rejectCourseRegistrationRequest(
+    @Param('courseId') courseId: string,
     @Param('registrationRequestId') registrationRequestId: string,
   ): Promise<void> {
+    const course = this.coursesService.getById(Number(courseId));
+
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+
     const courseRegistrationRequest =
       await this.courseRegistrationsService.getRequestById(
         Number(registrationRequestId),

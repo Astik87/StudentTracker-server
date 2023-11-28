@@ -9,6 +9,7 @@ import {
   CourseRegistrationRequest,
 } from '@/entities';
 import { CourseRegistrationRequestStatuses } from './types/CourseRegistrationRequestStatuses';
+import { GetCourseUsersDto } from '@/courses/modules/courseRegistrations/dto/get-course-users.dto';
 
 @Injectable()
 export class CourseRegistrationsService {
@@ -34,23 +35,27 @@ export class CourseRegistrationsService {
     limit: number,
     page: number,
     query?: string,
-  ): Promise<User[]> {
+  ): Promise<GetCourseUsersDto> {
     const usersWhere: FindOptionsWhere<User> = {};
 
     if (query) {
       usersWhere.fullName = ILike(`%${query}%`);
     }
 
-    const courseRegistrations = await this.courseRegistrationRepository.find({
-      where: {
-        user: usersWhere,
-      },
-      relations: ['user'],
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [courseRegistrations, count] =
+      await this.courseRegistrationRepository.findAndCount({
+        where: {
+          user: usersWhere,
+        },
+        relations: ['user'],
+        skip: (page - 1) * limit,
+        take: limit,
+      });
 
-    return courseRegistrations.map(({ user }) => user);
+    return {
+      count,
+      users: courseRegistrations.map(({ user }) => user),
+    };
   }
 
   async checkUserIsRegistered(

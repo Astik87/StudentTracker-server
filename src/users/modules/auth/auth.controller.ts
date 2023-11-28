@@ -7,19 +7,20 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBody,
   ApiExtension,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
-  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 
-import { UsersService } from '@/users';
 import { Token, User } from '@/entities';
 import { AuthService } from './auth.service';
 import { RegisterByLoginDto } from './dto/register-by-login.dto';
 import { AuthByLoginDto } from './dto/auth-by-login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Controller('users/auth')
 export class AuthController {
@@ -46,5 +47,18 @@ export class AuthController {
   @Post('register/by-login')
   async registerByLogin(@Body() user: RegisterByLoginDto): Promise<User> {
     return this.authService.registerByLogin(user);
+  }
+
+  @ApiTags('Authorisation')
+  @ApiOperation({ summary: 'Refresh token' })
+  @ApiOkResponse({ type: Token })
+  @ApiBadRequestResponse({ description: 'Invalid token' })
+  @ApiNotFoundResponse({ description: 'User not found || Token not found' })
+  @ApiBody({ type: RefreshTokenDto })
+  @Post('refresh-token')
+  async refreshToken(
+    @Body('refreshToken') refreshToken: string,
+  ): Promise<Token> {
+    return this.authService.refresh(refreshToken);
   }
 }

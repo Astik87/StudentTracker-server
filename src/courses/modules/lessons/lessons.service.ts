@@ -6,6 +6,7 @@ import Lesson from '@/entities/Lesson';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { CoursesService } from '../../courses.service';
+import { GetLessonsDto } from '@/courses/modules/lessons/dto/get-lessons.dto';
 
 @Injectable()
 export class LessonsService {
@@ -27,7 +28,7 @@ export class LessonsService {
     limit: number,
     page: number,
     query?: string,
-  ): Promise<Lesson[]> {
+  ): Promise<GetLessonsDto> {
     const course = await this.coursesService.getById(courseId);
 
     if (!course) {
@@ -40,12 +41,14 @@ export class LessonsService {
       where.name = query;
     }
 
-    return this.lessonRepository.find({
+    const [lessons, count] = await this.lessonRepository.findAndCount({
       where,
       relations: ['creator', 'course'],
       skip: (page - 1) * limit,
       take: limit,
     });
+
+    return { count, lessons };
   }
 
   async create(createLessonDto: CreateLessonDto): Promise<Lesson> {
@@ -55,14 +58,17 @@ export class LessonsService {
     });
   }
 
-  async update(id: number, updateLessonDto: UpdateLessonDto): Promise<Lesson> {
+  async update(
+    id: number,
+    updateLessonDto: UpdateLessonDto,
+  ): Promise<Lesson | null> {
     const lesson = await this.lessonRepository.findOne({
       where: { id },
       relations: ['creator', 'course'],
     });
 
     if (!lesson) {
-      throw new NotFoundException('Lesson not found');
+      return null;
     }
 
     if (updateLessonDto.name) {

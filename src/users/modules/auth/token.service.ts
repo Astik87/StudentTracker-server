@@ -55,7 +55,11 @@ export class TokenService {
     const tokenPayload: TokenPayloadDto = await this.jwtService.decode(
       token.refreshToken,
     );
-    const { refreshToken, accessToken } = await this.generate(tokenPayload);
+    const { refreshToken, accessToken } = await this.generate({
+      id: tokenPayload.id,
+      login: tokenPayload.login,
+      roles: tokenPayload.roles,
+    });
 
     return await this.tokenRepository.save({
       ...token,
